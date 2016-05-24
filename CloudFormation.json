@@ -95,16 +95,16 @@
 			}
 		},
 		
-		"AcessKey" : {
+		"AccessKey" : {
 			"Type" : "AWS::IAM::AccessKey",
 			"Properties" : {
 				"UserName" : { "Ref" : "IAMUser" }
 			}
-		}, 
+		},
 		
 		"StackNode01" : {
 			"Type" 		: "AWS::EC2::Instance",
-			"DependsOn" : "VPC",
+			"DependsOn" : ["VPC", "IAMUser", "AccessKey"],
 			"Properties" : {
 				"InstanceType" 		: 	{ "Ref" : "InstanceType" },
 				"KeyName" 				: 	{ "Ref" : "KeyName" },
@@ -132,12 +132,12 @@
 					"setup"	: {
 						"packages" : {
 							"yum"	: {
-								"openmpi"			: [],
-								"openmpi-devel"	: [],
-								"gcc"					: [],
-								"gcc-c++"			: [],
-								"java-devel"		: [],
-								"ant"					: []
+								"openmpi"						: [],
+								"openmpi-devel"				: [],
+								"gcc"								: [],
+								"gcc-c++"						: [],
+								"java-1.8.0-openjdk-devel" : [],
+								"ant"								: []
 							}
 						},
 						"files"	: {
@@ -145,8 +145,8 @@
 								"content" : {
 									"Fn::Join" : ["", [
 										"[default]\n",
-										"aws_access_key_id=", { "Ref" : "AcessKey" }, "\n",
-										"aws_secret_access_key=", { "Fn::GetAtt" : [ "AcessKey", "SecretAccessKey" ] }					
+										"aws_access_key_id=", { "Ref" : "AccessKey" }, "\n",
+										"aws_secret_access_key=", { "Fn::GetAtt" : [ "AccessKey", "SecretAccessKey" ] }					
 									]]
 								}
 							},
@@ -156,6 +156,21 @@
 										"[default]\n",
 										"region = sa-east-1"						
 									]]
+								}
+							},
+							"/home/ec2-user/.ssh/id_rsa.in" : {
+								"content" : { "Ref" : "PrivateKey" },
+								"owner" : "ec2-user"
+							},
+							"/etc/hosts" : {
+								"content" : {
+									"Fn::Join" : ["", [
+									"127.0.0.1   localhost   localhost\n",
+									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node01", "IP"  ] },"  node01  node01\n",
+									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node02", "IP"  ] },"  node02  node02\n",
+									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node03", "IP"  ] },"  node03  node03\n",
+									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node04", "IP"  ] },"  node04  node04\n",
+									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node05", "IP"  ] },"  node05  node05\n"]]
 								}
 							},
 							"/home/ec2-user/.initScripts/rsaParser.py" : {
@@ -190,21 +205,6 @@
 										"outputFile.close()"]]
 								},
 								"owner" : "ec2-user"
-							},
-							"/home/ec2-user/.ssh/id_rsa.in" : {
-								"content" : { "Ref" : "PrivateKey" },
-								"owner" : "ec2-user"
-							},
-							"/etc/hosts" : {
-								"content" : {
-									"Fn::Join" : ["", [
-									"127.0.0.1   localhost   localhost\n",
-									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node01", "IP"  ] },"  node01  node01\n",
-									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node02", "IP"  ] },"  node02  node02\n",
-									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node03", "IP"  ] },"  node03  node03\n",
-									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node04", "IP"  ] },"  node04  node04\n",
-									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node05", "IP"  ] },"  node05  node05\n"]]
-								}
 							}
 						},
 						"commands" : {
@@ -233,11 +233,11 @@
 							"ownerRSA" : {
 								"command" : "chown ec2-user.ec2-user /home/ec2-user/.ssh/id_rsa"
 							},
-							"permissionKnowHosts" : {
-								"command" : "chmod 600 /home/ec2-user/.ssh/know_hosts"
+							"permissionKnownHosts" : {
+								"command" : "chmod 600 /home/ec2-user/.ssh/known_hosts"
 							},
-							"ownerKnowHosts" : {
-								"command" : "chown ec2-user.ec2-user /home/ec2-user/.ssh/know_hosts"
+							"ownerKnownHosts" : {
+								"command" : "chown ec2-user.ec2-user /home/ec2-user/.ssh/known_hosts"
 							},
 							"permissionAWSConfig" : {
 								"command" : "chmod 600 /home/ec2-user/.aws/*"
@@ -253,7 +253,7 @@
 		
 		"StackNode02" : {
 			"Type" 		: "AWS::EC2::Instance",
-			"DependsOn" : "VPC",
+			"DependsOn" : ["VPC", "IAMUser", "AccessKey", "NATInstance"],
 			"Properties" : {
 				"InstanceType" 		: 	{ "Ref" : "InstanceType" },
 				"KeyName" 				: 	{ "Ref" : "KeyName" },
@@ -281,21 +281,21 @@
 					"setup"	: {
 						"packages" : {
 							"yum"	: {
-								"openmpi"			: [],
-								"openmpi-devel"	: [],
-								"gcc"					: [],
-								"gcc-c++"			: [],
-								"java-devel"		: [],
-								"ant"					: []
+								"openmpi"						: [],
+								"openmpi-devel"				: [],
+								"gcc"								: [],
+								"gcc-c++"						: [],
+								"java-1.8.0-openjdk-devel" : [],
+								"ant"								: []
 							}
 						},
 						"files"	: {
-							"/home/ec2-user/.aws/credentials" : {
+						"/home/ec2-user/.aws/credentials" : {
 								"content" : {
 									"Fn::Join" : ["", [
 										"[default]\n",
-										"aws_access_key_id=", { "Ref" : "AcessKey" }, "\n",
-										"aws_secret_access_key=", { "Fn::GetAtt" : [ "AcessKey", "SecretAccessKey" ] }					
+										"aws_access_key_id=", { "Ref" : "AccessKey" }, "\n",
+										"aws_secret_access_key=", { "Fn::GetAtt" : [ "AccessKey", "SecretAccessKey" ] }					
 									]]
 								}
 							},
@@ -305,6 +305,21 @@
 										"[default]\n",
 										"region = sa-east-1"						
 									]]
+								}
+							},
+							"/home/ec2-user/.ssh/id_rsa.in" : {
+								"content" : { "Ref" : "PrivateKey" },
+								"owner" : "ec2-user"
+							},
+							"/etc/hosts" : {
+								"content" : {
+									"Fn::Join" : ["", [
+									"127.0.0.1   localhost   localhost\n",
+									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node01", "IP"  ] },"  node01  node01\n",
+									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node02", "IP"  ] },"  node02  node02\n",
+									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node03", "IP"  ] },"  node03  node03\n",
+									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node04", "IP"  ] },"  node04  node04\n",
+									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node05", "IP"  ] },"  node05  node05\n"]]
 								}
 							},
 							"/home/ec2-user/.initScripts/rsaParser.py" : {
@@ -339,21 +354,6 @@
 										"outputFile.close()"]]
 								},
 								"owner" : "ec2-user"
-							},
-							"/home/ec2-user/.ssh/id_rsa.in" : {
-								"content" : { "Ref" : "PrivateKey" },
-								"owner" : "ec2-user"
-							},
-							"/etc/hosts" : {
-								"content" : {
-									"Fn::Join" : ["", [
-									"127.0.0.1   localhost   localhost\n",
-									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node01", "IP"  ] },"  node01  node01\n",
-									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node02", "IP"  ] },"  node02  node02\n",
-									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node03", "IP"  ] },"  node03  node03\n",
-									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node04", "IP"  ] },"  node04  node04\n",
-									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node05", "IP"  ] },"  node05  node05\n"]]
-								}
 							}
 						},
 						"commands" : {
@@ -382,11 +382,11 @@
 							"ownerRSA" : {
 								"command" : "chown ec2-user.ec2-user /home/ec2-user/.ssh/id_rsa"
 							},
-							"permissionKnowHosts" : {
-								"command" : "chmod 600 /home/ec2-user/.ssh/know_hosts"
+							"permissionKnownHosts" : {
+								"command" : "chmod 600 /home/ec2-user/.ssh/known_hosts"
 							},
-							"ownerKnowHosts" : {
-								"command" : "chown ec2-user.ec2-user /home/ec2-user/.ssh/know_hosts"
+							"ownerKnownHosts" : {
+								"command" : "chown ec2-user.ec2-user /home/ec2-user/.ssh/known_hosts"
 							},
 							"permissionAWSConfig" : {
 								"command" : "chmod 600 /home/ec2-user/.aws/*"
@@ -416,6 +416,7 @@
 				"ServiceName"		: "com.amazonaws.sa-east-1.s3",
 				"VpcId"				: { "Ref": "VPC" },
 				"RouteTableIds"	: [ { "Ref": "PrivateRouteTable"  }, { "Ref": "PublicRouteTable"  } ]
+				"PolicyDocument"	: 
 			}
 		},
 		
@@ -533,7 +534,7 @@
 				"UserData"				: 	{ "Fn::Base64" : { "Fn::Join" : ["", [
 												 "#!/bin/bash\n",
 												 "# Install the files and packages from the metadata\n",
-												 "/opt/aws/bin/cfn-init -v -c initOrder",
+												 "/opt/aws/bin/cfn-init -v -c initOrderNAT",
 												 "         --stack ", { "Ref" : "AWS::StackName" },
 												 "         --resource NATInstance ",
 												 "         --region ", { "Ref" : "AWS::Region" }, "\n" ]]}},
@@ -544,10 +545,42 @@
 			"Metadata" : {
 				"AWS::CloudFormation::Init" : {
 					"configSets" : {
-						"initOrder" : ["setup", "configure"]
+						"initOrderNAT" : ["setupNAT", "configureNAT"]
 					},
-					"setup"	: {
+					"setupNAT"	: {
 						"files"	: {
+							"/home/ec2-user/.aws/credentials" : {
+								"content" : {
+									"Fn::Join" : ["", [
+										"[default]\n",
+										"aws_access_key_id=", { "Ref" : "AccessKey" }, "\n",
+										"aws_secret_access_key=", { "Fn::GetAtt" : [ "AccessKey", "SecretAccessKey" ] }					
+									]]
+								}
+							},
+							"/home/ec2-user/.aws/config" : {
+								"content" : {
+									"Fn::Join" : ["", [
+										"[default]\n",
+										"region = sa-east-1"						
+									]]
+								}
+							},
+							"/home/ec2-user/.ssh/id_rsa.in" : {
+								"content" : { "Ref" : "PrivateKey" },
+								"owner" : "ec2-user"
+							},
+							"/etc/hosts" : {
+								"content" : {
+									"Fn::Join" : ["", [
+									"127.0.0.1   localhost   localhost\n",
+									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node01", "IP"  ] },"  node01  node01\n",
+									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node02", "IP"  ] },"  node02  node02\n",
+									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node03", "IP"  ] },"  node03  node03\n",
+									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node04", "IP"  ] },"  node04  node04\n",
+									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node05", "IP"  ] },"  node05  node05\n"]]
+								}
+							},
 							"/home/ec2-user/.initScripts/rsaParser.py" : {
 								"content" : {
 									"Fn::Join" : ["\n",[
@@ -580,21 +613,6 @@
 										"outputFile.close()"]]
 								},
 								"owner" : "ec2-user"
-							},
-							"/home/ec2-user/.ssh/id_rsa.in" : {
-								"content" : { "Ref" : "PrivateKey" },
-								"owner" : "ec2-user"
-							},
-							"/etc/hosts" : {
-								"content" : {
-									"Fn::Join" : ["", [
-									"127.0.0.1   localhost   localhost\n",
-									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node01", "IP"  ] },"  node01  node01\n",
-									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node02", "IP"  ] },"  node02  node02\n",
-									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node03", "IP"  ] },"  node03  node03\n",
-									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node04", "IP"  ] },"  node04  node04\n",
-									{ "Fn::FindInMap" : [ "IpAddressConfig", "Node05", "IP"  ] },"  node05  node05\n"]]
-								}
 							}
 						},
 						"commands" : {
@@ -606,7 +624,7 @@
 							}
 						}
 					},
-					"configure"	: {
+					"configureNAT"	: {
 						"commands" : {
 							"permissionRSA" : {
 								"command" : "chmod 600 /home/ec2-user/.ssh/id_rsa"
