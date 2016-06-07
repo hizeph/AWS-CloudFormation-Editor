@@ -1,0 +1,10 @@
+"packages" : {
+	"yum"	: {
+		"openmpi"						: [],
+		"openmpi-devel"				: [],
+		"gcc"								: [],
+		"gcc-c++"						: [],
+		"java-1.8.0-openjdk-devel" : [],
+		"ant"								: []
+	}
+}

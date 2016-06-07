@@ -1,0 +1,148 @@
+"NodeTemplate" : {
+	"DependsOn" : "NATInstance",
+	"Type" 		: "AWS::EC2::Instance",
+	"Properties" : {
+		"InstanceType" 		: 	{ "Ref" : "InstanceType" },
+		"KeyName" 				: 	{ "Ref" : "KeyName" },
+		"ImageId" 				: 	{ "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
+											{ "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" }, "Arch" ] } ] },
+		"NetworkInterfaces"	: 	[ { 	"AssociatePublicIpAddress"	: "false",
+												"DeviceIndex"					: "0",
+												"GroupSet"						: [{ "Ref" : "PrivateSecurityGroup" }],
+												"PrivateIpAddress" 			: { "Fn::FindInMap" : [ "IpAddressConfig", "", "IP"  ] },
+												"SubnetId"						: { "Ref" : "PrivateSubnet" }}],
+		"UserData"				: 	{ "Fn::Base64" : { "Fn::Join" : ["", [
+										 "#!/bin/bash\n",
+										 "# Install the files and packages from the metadata\n",
+										 "/opt/aws/bin/cfn-init -v -c initOrder",
+										 "         --stack ", { "Ref" : "AWS::StackName" },
+										 "         --resource NodeTemplate ",
+										 "         --region ", { "Ref" : "AWS::Region" }, "\n" ]]}},
+		"Tags" 					: 	[ { "Key" : "Name", "Value" : "" } ]
+	},
+	"Metadata" : {
+		"AWS::CloudFormation::Init" : {
+			"configSets" : {
+				"initOrder" : ["setup", "configure"]
+			},
+			"setup"	: {
+				"packages" : {
+					"yum"	: {
+						"openmpi"						: [],
+						"openmpi-devel"				: [],
+						"gcc"								: [],
+						"gcc-c++"						: [],
+						"java-1.8.0-openjdk-devel" : [],
+						"ant"								: []
+					}
+				},
+				"files"	: {
+					"/home/ec2-user/.aws/credentials" : {
+						"content" : {
+							"Fn::Join" : ["", [
+								"[default]\n",
+								"aws_access_key_id=", { "Ref" : "AccessKey" }, "\n",
+								"aws_secret_access_key=", { "Fn::GetAtt" : [ "AccessKey", "SecretAccessKey" ] }					
+							]]
+						}
+					},
+					"/home/ec2-user/.aws/config" : {
+						"content" : {
+							"Fn::Join" : ["", [
+								"[default]\n",
+								"region = sa-east-1"						
+							]]
+						}
+					},
+					"/home/ec2-user/.ssh/id_rsa.in" : {
+						"content" : { "Ref" : "PrivateKey" },
+						"owner" : "ec2-user"
+					},
+					"/etc/hosts" : {
+						"content" : {
+							"Fn::Join" : ["", [
+							"127.0.0.1   localhost   localhost\n",
+							{ "Fn::FindInMap" : [ "IpAddressConfig", "Node01", "IP"  ] },"  node01  node01\n",
+							{ "Fn::FindInMap" : [ "IpAddressConfig", "Node02", "IP"  ] },"  node02  node02\n",
+							{ "Fn::FindInMap" : [ "IpAddressConfig", "Node03", "IP"  ] },"  node03  node03\n",
+							{ "Fn::FindInMap" : [ "IpAddressConfig", "Node04", "IP"  ] },"  node04  node04\n",
+							{ "Fn::FindInMap" : [ "IpAddressConfig", "Node05", "IP"  ] },"  node05  node05\n"]]
+						}
+					},
+					"/home/ec2-user/.initScripts/rsaParser.py" : {
+						"content" : {
+							"Fn::Join" : ["\n",[
+								"import re",
+								"input = open(\"/home/ec2-user/.ssh/id_rsa.in\").read()",
+								"bgnEnd = re.findall('-----[A-Z\\s]+-----',input)",
+								"content = re.findall('-\\s(.+?)\\s-',input)",
+								"lines = content[0].split(\" \")",
+								"outputFile = open(\"/home/ec2-user/.ssh/id_rsa\", \"w\")",
+								"outputFile.write(bgnEnd[0] + '\\n')",
+								"[outputFile.write(line + '\\n') for line in lines]",
+								"outputFile.write(bgnEnd[1])",
+								"outputFile.close()" ]]
+						},
+						"owner" : "ec2-user"
+					},
+					"/home/ec2-user/.initScripts/sshHostScan.py" : {
+						"content" : {
+							"Fn::Join" : ["\n",[
+								"import re",
+								"from subprocess import check_output",
+								"input = open(\"/etc/hosts\").read()",
+								"hosts = re.findall('\\s([a-z0-9]+[0-9])\\n', input)",
+								"ips = re.findall('\\n(\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3})\\s', input)",
+								"output = list()",
+								"[output.append(check_output([\"ssh-keyscan\", \"-H\", ip])) for ip in ips]",
+								"[output.append(check_output([\"ssh-keyscan\", \"-H\", host])) for host in hosts]",
+								"outputFile = open(\"/home/ec2-user/.ssh/known_hosts\", \"w\")",
+								"[outputFile.write(line + '\\n') for line in output]",
+								"outputFile.close()"]]
+						},
+						"owner" : "ec2-user"
+					}
+				},
+				"commands" : {
+					"parseRSA" : {
+						"command" : "python /home/ec2-user/.initScripts/rsaParser.py"
+					},
+					"scanHosts" : {
+						"command" : "python /home/ec2-user/.initScripts/sshHostScan.py"
+					}
+				}
+			},
+			"configure"	: {
+				"commands" : {
+					"exportOpenMPIBin" : {
+						"command" : "echo \"export PATH=/usr/lib64/openmpi/bin:$PATH\" >> /home/ec2-user/.bashrc"
+					},
+					"exportOpenMPILib" : {
+						"command" : "echo \"export LD_LIBRARY_PATH=/usr/lib64/openmpi/lib:$LD_LIBRARY_PATH\" >> /home/ec2-user/.bashrc"
+					},
+					"exportJavaHome" : {
+						"command" : "echo \"export JAVA_HOME=/usr/lib/jvm/java-openjdk/\" >> /home/ec2-user/.bashrc"
+					},
+					"permissionRSA" : {
+						"command" : "chmod 600 /home/ec2-user/.ssh/id_rsa"
+					},
+					"ownerRSA" : {
+						"command" : "chown ec2-user.ec2-user /home/ec2-user/.ssh/id_rsa"
+					},
+					"permissionKnownHosts" : {
+						"command" : "chmod 600 /home/ec2-user/.ssh/known_hosts"
+					},
+					"ownerKnownHosts" : {
+						"command" : "chown ec2-user.ec2-user /home/ec2-user/.ssh/known_hosts"
+					},
+					"permissionAWSConfig" : {
+						"command" : "chmod 600 /home/ec2-user/.aws/*"
+					},
+					"ownerAWSConfig" : {
+						"command" : "chown ec2-user.ec2-user /home/ec2-user/.aws/*"
+					}
+				}
+			}
+		}
+	}
+}
