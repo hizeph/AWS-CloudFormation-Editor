@@ -2,10 +2,6 @@
 	"content" : {
 		"Fn::Join" : ["", [
 		"127.0.0.1   localhost   localhost\n",
-		{ "Fn::FindInMap" : [ "IpAddressConfig", "Node01", "IP"  ] },"  node01  node01\n",
-		{ "Fn::FindInMap" : [ "IpAddressConfig", "Node02", "IP"  ] },"  node02  node02\n",
-		{ "Fn::FindInMap" : [ "IpAddressConfig", "Node03", "IP"  ] },"  node03  node03\n",
-		{ "Fn::FindInMap" : [ "IpAddressConfig", "Node04", "IP"  ] },"  node04  node04\n",
-		{ "Fn::FindInMap" : [ "IpAddressConfig", "Node05", "IP"  ] },"  node05  node05\n"]]
+		{ "Fn::FindInMap" : [ "IpAddressConfig", "Node01", "IP"  ] },"  node01  node01\n" ]]
 	}
 }
