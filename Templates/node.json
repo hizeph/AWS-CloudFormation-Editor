@@ -18,7 +18,7 @@
 										 "         --stack ", { "Ref" : "AWS::StackName" },
 										 "         --resource ",
 										 "         --region ", { "Ref" : "AWS::Region" }, "\n" ]]}},
-		"Tags" 					: 	[ { "Key" : "Name", "Value" : "" } ]
+		"Tags" 					: 	[]
 	},
 	"Metadata" : {
 		"AWS::CloudFormation::Init" : {

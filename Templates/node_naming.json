@@ -1,7 +1,0 @@
-"/etc/hosts" : {
-	"content" : {
-		"Fn::Join" : ["", [
-		"127.0.0.1   localhost   localhost\n",
-		{ "Fn::FindInMap" : [ "IpAddressConfig", "Node01", "IP"  ] },"  node01  node01\n" ]]
-	}
-}
