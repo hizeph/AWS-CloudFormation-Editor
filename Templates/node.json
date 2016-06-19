@@ -23,18 +23,10 @@
 	"Metadata" : {
 		"AWS::CloudFormation::Init" : {
 			"configSets" : {
-				"initOrder" : ["setup", "configure"]
+				"initOrder" : ["setup", "configure", "custom"]
 			},
 			"setup"	: {
 				"packages" : {
-					"yum"	: {
-						"openmpi"					: [],
-						"openmpi-devel"				: [],
-						"gcc"						: [],
-						"gcc-c++"					: [],
-						"java-1.8.0-openjdk-devel" 	: [],
-						"ant"						: []
-					}
 				},
 				"files"	: {
 					"/home/ec2-user/.aws/credentials" : {
@@ -131,6 +123,8 @@
 						"command" : "chown ec2-user.ec2-user /home/ec2-user/.aws/*"
 					}
 				}
+			},
+			"custom" : {
 			}
 		}
 	}

@@ -5,7 +5,7 @@ class InfrastructureConfiguration:
 	def __init__ (self):
 		self.n_nodes = 3
 		self.packages = ["openmpi", "openmpi-devel", "gcc", "gcc-c++", "ant", "java-1.8.0-openjdk-devel"]
-		self.files = []
+		self.scripts = [{"name" : "custom.py", "interpreter" : "python" }, {"name" : "custom.sh", "interpreter" :"bash"}]
 
 	def set_n_nodes (self, n_nodes):
 		self.n_nodes = n_nodes
@@ -13,8 +13,8 @@ class InfrastructureConfiguration:
 	def add_package (self, package_name):
 		self.packages.append(package_name)
 
-	def add_extra_files (self, file_name):
-		self.files.apped(file_name)
+	def add_custom_script (self, script_name, interpreter):
+		self.scripts.append({"name" : script_name, "interpreter" : interpreter})
 
 	def create_ip_map (self):
 		ip_map =  {"IpAddressConfig" : {}}
@@ -31,11 +31,11 @@ class InfrastructureConfiguration:
 		host_file = {"/etc/hosts" : { "content" : { "Fn::Join" : ["", ["127.0.0.1    localhost    localhost\n"]]}}}
 		for n in range(1,self.n_nodes+1):
 			if (n < 10):
-				node_resource_name = "node0" + str(n)
+				node_name = "node0" + str(n)
 			else:
-				node_resource_name = "node" + str(n)
+				node_name = "node" + str(n)
 			ip_addr = "192.168.0." + str(n + 3)
-			host_file["/etc/hosts"]["content"]["Fn::Join"][1].append(ip_addr+"    "+node_resource_name+"    "+node_resource_name+"\n")
+			host_file["/etc/hosts"]["content"]["Fn::Join"][1].append(ip_addr+"    "+node_name+"    "+node_name+"\n")
 		#print(json.dumps(host_file))
 		return host_file
 
@@ -46,11 +46,28 @@ class InfrastructureConfiguration:
 		#print(json.dumps(package_list))
 		return package_list
 
+	def parse_custom_scripts (self):
+		custom_init = {"files" : {}, "commands" : {}}
+		for custom_script in self.scripts:
+			script_name = custom_script['name']
+			try:
+				script = open("CustomScripts/" + script_name).read()
+				path = "/home/ec2-user/.initScripts/" + script_name
+				parsed_script = { path : {"content" :  {"Fn::Join" : ["\n",[]]}}}
+				for line in script.split('\n'):
+					line = line.replace("\n", "\\n")
+					parsed_script[path]['content']['Fn::Join'][1].append(line)
+				custom_init['files'].update(parsed_script)
+				custom_init['commands']["run_"+script_name] = {}
+				custom_init['commands']["run_"+script_name]["command"] = custom_script['interpreter'] + " " + path
+				custom_init['commands']["run_"+script_name]['ignoreErrors'] = "true"
+			except:
+				print("\n\nError reading custom scripts")
+				raise
+		#print(custom_init)
+		return custom_init
 
-	def create_extra_files (self):
-		pass
-
-	def create_nodes(self, host_file, package_list, extra_files):
+	def create_nodes(self, host_file, package_list, custom_init):
 
 		node_list = []
 		for n in range(1,self.n_nodes+1):
@@ -67,9 +84,11 @@ class InfrastructureConfiguration:
 				node['Properties']['Tags'].append({"Key" : "Name", "Value" : node_name})
 				node['Metadata']['AWS::CloudFormation::Init']['setup'].update(package_list)
 				node['Metadata']['AWS::CloudFormation::Init']['setup']['files'].update(host_file)
+				node['Metadata']['AWS::CloudFormation::Init']['custom'].update(custom_init)
 				node_list.append(node)
 			except:
-				print ("Error creating node")
+				print("\n\nError creating nodes")
+				raise
 		return node_list
 
 
@@ -77,14 +96,16 @@ class InfrastructureConfiguration:
 		ip_map = self.create_ip_map()
 		host_file = self.create_hosts_file()
 		package_list = self.create_package_list()
-		extra_files = {} #self.create_extra_files()
-		node_list = self.create_nodes(host_file, package_list, extra_files)
+		custom_init = self.parse_custom_scripts()
+		node_list = self.create_nodes(host_file, package_list, custom_init)
 		try:
 			base_infra = json.loads(open("Templates/base_infra.json").read())
 		except:
-			print ("Error loading files")
+			print("\n\nError loading files")
+			raise
 
 		base_infra['Mappings'].update(ip_map)
+		base_infra['Resources']['NATInstance']['Metadata']['AWS::CloudFormation::Init']['setupNAT']['files'].update(host_file)
 		for n in range(1,self.n_nodes+1):
 			if (n < 10):
 				node_resource_name = "StackNode0" + str(n)
