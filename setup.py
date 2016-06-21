@@ -1,5 +1,5 @@
 
-import sys
+import sys, argparse
 from driver import InfrastructureConfiguration
 
 class Setup:
@@ -17,7 +17,11 @@ class Setup:
 
 	def conf_nodes (self):
 		try:
-			read_input = input("\nTotal desired number of nodes: ")
+			read_input = input("\nTotal desired number of nodes (max 124): ")
+			if (int(read_input) > 124):
+				print("\n\nNumber above limit!")
+				input()
+				raise
 			self.conf.set_n_nodes(int(read_input))
 		except KeyboardInterrupt:
 			pass
@@ -85,4 +89,17 @@ class Setup:
 
 if __name__ == '__main__':
 	setup = Setup()
-	setup.overall_conf()
+
+	parser = argparse.ArgumentParser()
+	parser.add_argument('-o', '--output', type=str, help="Set the output file name and generates infrastructure.")
+	parser.add_argument('-f', '--file', type=str, help="Set the configuration file.")
+	parser.add_argument('-n', '--nodes', type=int, help="Set the number of nodes. This option overrides the configuration file.")
+	args = parser.parse_args()
+	if (args.file is not None):
+		setup.conf.load_conf(args.file)
+	if (args.nodes is not None):
+		setup.conf.set_n_nodes(args.nodes)
+	if (args.output is not None):
+		setup.conf.generate_infra(args.output)
+	else:
+		setup.overall_conf()

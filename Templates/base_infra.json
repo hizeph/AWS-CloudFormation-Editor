@@ -56,7 +56,7 @@
 		"SubnetConfig" : {
 			"VPC"     : { "CIDR" : "192.168.0.0/24" },
 			"Public"  : { "CIDR" : "192.168.0.240/28" },
-			"Private" : { "CIDR" : "192.168.0.0/28" }
+			"Private" : { "CIDR" : "192.168.0.0/25" }
 		},
 		
 		"AWSInstanceType2Arch" : {

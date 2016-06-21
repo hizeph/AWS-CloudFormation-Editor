@@ -1,0 +1,17 @@
+{
+	"n_nodes" : 3,
+	"packages" :
+	[
+		"openmpi",
+		"openmpi-devel",
+		"gcc",
+		"gcc-c++",
+		"ant",
+		"java-1.8.0-openjdk-devel"
+	],
+	"custom_scripts" :
+	[
+		{ "name" : "custom.py", "interpreter" : "python" },
+		{ "name" : "custom.sh", "interpreter" : "bash" }
+	]
+}
