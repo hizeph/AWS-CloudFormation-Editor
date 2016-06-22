@@ -10,9 +10,10 @@ class Setup:
 			1: self.conf_nodes,
 			2: self.conf_packages,
 			3: self.conf_scripts,
-			4: self.show_conf,
-			5: self.save_conf,
-			6: sys.exit
+			4: self.save_infra,
+			5: self.show_conf,
+			6: self.save_conf,
+			7: sys.exit
 		}
 
 	def conf_nodes (self):
@@ -28,17 +29,36 @@ class Setup:
 
 	def conf_packages (self):
 		try:
-			read_input = input("\nPackage name to add: ")
-			self.conf.add_package(str(read_input))
+			print("\nOptions:")
+			print("\tadd package_name")
+			print("\trm package_name")
+			read_input = input("Action: ")
+			input_list = str(read_input).split(' ')
+			if (input_list[0] == 'add'):
+				self.conf.add_package(input_list[1])
+			elif (input_list[0] == 'rm'):
+				self.conf.rm_package(input_list[1])
+			else:
+				print("\nInvalid Option")
+				input()
+				raise
 		except KeyboardInterrupt:
 			pass
 
 	def conf_scripts (self):
 		try:
 			print("\nScript must be located at CustomScripts folder")
-			script_name = input("Name (case sensitive): ")
-			interpreter = input("Interpreter to run the script (bash, python, python3, etc): ")
-			self.conf.add_custom_script(str(script_name), str(interpreter))
+			action = str(input("Add [add] or Remove [rm]: "))
+			if (not (action == 'add' or action == 'rm')):
+				print("\nInvalid Option")
+				input()
+				raise
+			script_name = str(input("Name (case sensitive): "))
+			interpreter = str(input("Interpreter to run the script (bash, python, python3, etc): "))
+			if (action == "add"):
+				self.conf.add_custom_script(script_name, interpreter)
+			elif (action == "rm"):
+				self.conf.rm_custom_script(script_name, interpreter)
 		except KeyboardInterrupt:
 			pass
 
@@ -54,9 +74,21 @@ class Setup:
 
 	def save_conf (self):
 		try:
+			read_input = input("\nName of the configuration file: ")
+			self.conf.save_conf(str(read_input))
+			print("\nConfiguration file saved")
+			input()
+		except KeyboardInterrupt:
+			pass
+		except:
+			input()
+			pass
+
+	def save_infra (self):
+		try:
 			read_input = input("\nName of the output file: ")
 			self.conf.generate_infra(str(read_input))
-			print("\nFile saved")
+			print("\nInfrastructure file saved")
 			input()
 		except KeyboardInterrupt:
 			pass
@@ -72,9 +104,10 @@ class Setup:
 				print("\t1 - Number of nodes")
 				print("\t2 - Packages to install")
 				print("\t3 - Custom scripts")
-				print("\t4 - Show configuration")
-				print("\t5 - Save configuration")
-				print("\t6 - Quit")
+				print("\t4 - Generate infrastructure")
+				print("\t5 - Show configuration")
+				print("\t6 - Save configuration to file")
+				print("\t7 - Quit")
 				print("")
 				read_input = input("Type option number: ")
 				self.conf_map[int(read_input)]()
@@ -93,7 +126,7 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument('-o', '--output', type=str, help="Set the output file name and generates infrastructure.")
 	parser.add_argument('-f', '--file', type=str, help="Set the configuration file.")
-	parser.add_argument('-n', '--nodes', type=int, help="Set the number of nodes. This option overrides the configuration file.")
+	parser.add_argument('-n', '--nodes', type=int, help="Set the number of nodes to a maximum of 124. This option overrides the configuration file.")
 	args = parser.parse_args()
 	if (args.file is not None):
 		setup.conf.load_conf(args.file)

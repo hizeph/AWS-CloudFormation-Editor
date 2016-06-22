@@ -5,15 +5,22 @@ class InfrastructureConfiguration:
 	def __init__ (self):
 		self.load_conf("config")
 
-	def load_conf (self, conf_file):
+	def load_conf (self, file_name):
 		try:
-			conf = json.loads(open(conf_file, "r").read())
-			self.n_nodes = conf['n_nodes']
-			self.packages = conf['packages']
-			self.scripts = conf['custom_scripts']
+			conf_file = open(file_name, "r")
+			self.conf = json.loads(conf_file.read())
+			conf_file.close()
+			self.n_nodes = self.conf['n_nodes']
+			self.packages = self.conf['packages']
+			self.scripts = self.conf['custom_scripts']
 		except:
 			print("Error loading config")
 			sys.exit()
+
+	def save_conf (self, file_name):
+		conf_file = open(file_name, "w")
+		conf_file.write(json.dumps(self.conf))
+		conf_file.close()
 
 	def set_n_nodes (self, n_nodes):
 		self.n_nodes = n_nodes
@@ -21,8 +28,22 @@ class InfrastructureConfiguration:
 	def add_package (self, package_name):
 		self.packages.append(package_name)
 
+	def rm_package (self, package_name):
+		try:
+			self.packages.remove(package_name)
+		except:
+			print("\n\nPackage not found")
+			raise
+
 	def add_custom_script (self, script_name, interpreter):
 		self.scripts.append({'name' : script_name, 'interpreter' : interpreter})
+
+	def rm_custom_script (self, script_name, interpreter):
+		try:
+			self.scripts.remove({'name' : script_name, 'interpreter' : interpreter})
+		except:
+			print("\n\nScript not found")
+			raise
 
 	def create_ip_map (self):
 		ip_map =  {'IpAddressConfig' : {}}
