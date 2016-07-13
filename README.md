@@ -2,7 +2,7 @@
 
 Requirements
 
-  Python 2+ with argparse and json packages.
+  Python 3+ with argparse and json packages.
   
   
 Execution
@@ -27,7 +27,7 @@ Configuration File
       "packages" :
       [
         "gcc",
-        "gcc­c++"
+        "gcc-c++"
       ],
       "custom_scripts" :
       [
